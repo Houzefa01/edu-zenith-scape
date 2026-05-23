@@ -18,29 +18,32 @@ export const Route = createFileRoute("/profile")({
 });
 
 function ProfilePage() {
-  const { user, setUser } = useSession();
+  const { user, refresh } = useSession();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
   const [bio, setBio] = useState(
     "Designer produit passionnée par les design systems et la recherche utilisateur.",
   );
+  const [saving, setSaving] = useState(false);
 
   const completed = courses.filter((c) => c.progress >= 100).length;
   const inProgress = courses.filter((c) => c.progress > 0 && c.progress < 100).length;
 
-  function save() {
-    setUser({
-      ...user,
-      name,
-      email,
-      initials: name
-        .split(" ")
-        .map((s) => s[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase(),
-    });
+  async function save() {
+    if (!user.id) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ full_name: name, email })
+      .eq("id", user.id);
+    setSaving(false);
+    if (error) {
+      toast.error("Impossible d'enregistrer", { description: error.message });
+      return;
+    }
+    await refresh();
+    toast.success("Profil mis à jour");
     setEditing(false);
   }
 
