@@ -3,8 +3,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { CourseCard } from "@/components/course-card";
 import { courses } from "@/lib/mock-data";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Check, GraduationCap, Loader2, Search, SlidersHorizontal, UserPlus, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { usePublishedCourses } from "@/lib/enrollments";
 
 export const Route = createFileRoute("/courses")({
   validateSearch: (s: Record<string, unknown>) => ({ q: typeof s.q === "string" ? s.q : undefined }),
