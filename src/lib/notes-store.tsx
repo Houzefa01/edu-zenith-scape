@@ -64,7 +64,7 @@ export function useNotes() {
   }
 
   async function update(id: string, patch: Partial<Omit<Note, "id">>) {
-    const dbPatch: Record<string, unknown> = {};
+    const dbPatch: { title?: string; body?: string; course?: string | null } = {};
     if (patch.title !== undefined) dbPatch.title = patch.title;
     if (patch.body !== undefined) dbPatch.body = patch.body;
     if (patch.course !== undefined) dbPatch.course = patch.course ?? null;
