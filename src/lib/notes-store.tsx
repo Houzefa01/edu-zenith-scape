@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useSession } from "@/lib/session";
 
 export type Note = {
   id: string;
@@ -8,58 +10,79 @@ export type Note = {
   updatedAt: number;
 };
 
-const KEY = "lumen.notes.v1";
-
-const SEED: Note[] = [
-  {
-    id: "n-seed-1",
-    title: "Tokens de couleur — règles d'or",
-    body:
-      "1. Toujours nommer par intention (primary, surface) plutôt que par valeur.\n2. Conserver des paires fond/texte testées WCAG AA.\n3. Documenter les exceptions dans la gouvernance.",
-    course: "Design Systems modernes",
-    updatedAt: Date.now() - 1000 * 60 * 60 * 26,
-  },
-  {
-    id: "n-seed-2",
-    title: "React — éviter les re-renders inutiles",
-    body:
-      "• useMemo pour les calculs coûteux uniquement.\n• Stabiliser les callbacks passés à des enfants memo.\n• Séparer l'état proche de là où il est lu.",
-    course: "React Avancé",
-    updatedAt: Date.now() - 1000 * 60 * 60 * 6,
-  },
-];
+function mapRow(r: {
+  id: string;
+  title: string;
+  body: string;
+  course: string | null;
+  updated_at: string;
+}): Note {
+  return {
+    id: r.id,
+    title: r.title,
+    body: r.body,
+    course: r.course ?? undefined,
+    updatedAt: new Date(r.updated_at).getTime(),
+  };
+}
 
 export function useNotes() {
+  const { user, isAuthenticated } = useSession();
   const [notes, setNotes] = useState<Note[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      setNotes(raw ? (JSON.parse(raw) as Note[]) : SEED);
-    } catch {
-      setNotes(SEED);
+  const load = useCallback(async () => {
+    if (!isAuthenticated || !user.id) {
+      setNotes([]);
+      setHydrated(true);
+      return;
     }
+    const { data, error } = await supabase
+      .from("notes")
+      .select("id,title,body,course,updated_at")
+      .order("updated_at", { ascending: false });
+    if (!error && data) setNotes(data.map(mapRow));
     setHydrated(true);
-  }, []);
+  }, [isAuthenticated, user.id]);
 
   useEffect(() => {
-    if (!hydrated) return;
-    try { localStorage.setItem(KEY, JSON.stringify(notes)); } catch {}
-  }, [notes, hydrated]);
+    setHydrated(false);
+    load();
+  }, [load]);
 
-  function create(input: Omit<Note, "id" | "updatedAt">) {
-    const n: Note = { ...input, id: crypto.randomUUID(), updatedAt: Date.now() };
+  async function create(input: Omit<Note, "id" | "updatedAt">) {
+    if (!user.id) return null;
+    const { data, error } = await supabase
+      .from("notes")
+      .insert({ user_id: user.id, title: input.title, body: input.body, course: input.course ?? null })
+      .select("id,title,body,course,updated_at")
+      .single();
+    if (error || !data) return null;
+    const n = mapRow(data);
     setNotes((prev) => [n, ...prev]);
     return n;
   }
-  function update(id: string, patch: Partial<Omit<Note, "id">>) {
-    setNotes((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, ...patch, updatedAt: Date.now() } : n)),
-    );
+
+  async function update(id: string, patch: Partial<Omit<Note, "id">>) {
+    const dbPatch: { title?: string; body?: string; course?: string | null } = {};
+    if (patch.title !== undefined) dbPatch.title = patch.title;
+    if (patch.body !== undefined) dbPatch.body = patch.body;
+    if (patch.course !== undefined) dbPatch.course = patch.course ?? null;
+    const { data, error } = await supabase
+      .from("notes")
+      .update(dbPatch)
+      .eq("id", id)
+      .select("id,title,body,course,updated_at")
+      .single();
+    if (error || !data) return;
+    const n = mapRow(data);
+    setNotes((prev) => prev.map((x) => (x.id === id ? n : x)));
   }
-  function remove(id: string) {
-    setNotes((prev) => prev.filter((n) => n.id !== id));
+
+  async function remove(id: string) {
+    const { error } = await supabase.from("notes").delete().eq("id", id);
+    if (!error) setNotes((prev) => prev.filter((n) => n.id !== id));
   }
+
   return { notes, create, update, remove, hydrated };
 }

@@ -33,9 +33,9 @@ function NotesPage() {
 
   const active: Note | undefined = filtered.find((n) => n.id === activeId) ?? filtered[0];
 
-  function createNote() {
-    const n = create({ title: "Nouvelle note", body: "" });
-    setActiveId(n.id);
+  async function createNote() {
+    const n = await create({ title: "Nouvelle note", body: "" });
+    if (n) setActiveId(n.id);
   }
 
   return (
