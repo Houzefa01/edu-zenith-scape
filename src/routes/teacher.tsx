@@ -1,3 +1,4 @@
+import { RequireAuth } from "@/components/require-auth";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { useTeacherStore, type TeacherCourse } from "@/lib/teacher-store";
@@ -12,7 +13,7 @@ export const Route = createFileRoute("/teacher")({
       { name: "description", content: "Gérez vos cours, examens et étudiants depuis votre tableau de bord enseignant." },
     ],
   }),
-  component: TeacherPage,
+  component: () => (<RequireAuth><TeacherPage /></RequireAuth>),
 });
 
 function TeacherPage() {

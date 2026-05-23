@@ -1,3 +1,4 @@
+import { RequireAuth } from "@/components/require-auth";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { useSession, type Role } from "@/lib/session";
@@ -11,7 +12,7 @@ export const Route = createFileRoute("/settings")({
       { name: "description", content: "Préférences, notifications, thème et sécurité de votre compte Lumen." },
     ],
   }),
-  component: SettingsPage,
+  component: () => (<RequireAuth><SettingsPage /></RequireAuth>),
 });
 
 const THEME_KEY = "lumen.theme.v1";

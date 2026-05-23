@@ -1,3 +1,4 @@
+import { RequireAuth } from "@/components/require-auth";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { useNotes, type Note } from "@/lib/notes-store";
@@ -11,7 +12,7 @@ export const Route = createFileRoute("/notes")({
       { name: "description", content: "Prenez et retrouvez vos notes de cours rapidement." },
     ],
   }),
-  component: NotesPage,
+  component: () => (<RequireAuth><NotesPage /></RequireAuth>),
 });
 
 function NotesPage() {

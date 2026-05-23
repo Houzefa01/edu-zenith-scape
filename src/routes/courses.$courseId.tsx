@@ -1,3 +1,4 @@
+import { RequireAuth } from "@/components/require-auth";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import type { Course } from "@/lib/mock-data";
@@ -42,7 +43,7 @@ export const Route = createFileRoute("/courses/$courseId")({
       </div>
     </AppShell>
   ),
-  component: CourseDetail,
+  component: () => (<RequireAuth><CourseDetail /></RequireAuth>),
 });
 
 function CourseDetail() {

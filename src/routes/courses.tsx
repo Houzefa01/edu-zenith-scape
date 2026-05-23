@@ -1,3 +1,4 @@
+import { RequireAuth } from "@/components/require-auth";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { CourseCard } from "@/components/course-card";
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/courses")({
       { property: "og:description", content: "Tous les cours de l'école Lumen." },
     ],
   }),
-  component: CoursesPage,
+  component: () => (<RequireAuth><CoursesPage /></RequireAuth>),
 });
 
 const categories = ["Tous", "Design", "Développement", "Data", "Produit", "Contenu"];

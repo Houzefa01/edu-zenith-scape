@@ -1,3 +1,4 @@
+import { RequireAuth } from "@/components/require-auth";
 import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { exercises, courses } from "@/lib/mock-data";
@@ -64,7 +65,7 @@ export const Route = createFileRoute("/exercises/$exerciseId")({
       </AppShell>
     );
   },
-  component: ExerciseDetail,
+  component: () => (<RequireAuth><ExerciseDetail /></RequireAuth>),
 });
 
 function ExerciseDetail() {

@@ -1,3 +1,4 @@
+import { RequireAuth } from "@/components/require-auth";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
@@ -33,7 +34,7 @@ export const Route = createFileRoute("/schedule")({
       { property: "og:description", content: "Votre planning d'apprentissage." },
     ],
   }),
-  component: SchedulePage,
+  component: () => (<RequireAuth><SchedulePage /></RequireAuth>),
 });
 
 // ---------- Types & helpers ----------
