@@ -2,9 +2,10 @@ import { RequireAuth } from "@/components/require-auth";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { useTeacherStore, type TeacherCourse } from "@/lib/teacher-store";
+import { useTeacherStats } from "@/lib/teacher-stats";
 import { useSession } from "@/lib/session";
 import { useState } from "react";
-import { BookOpen, ClipboardList, Eye, EyeOff, Plus, Trash2, Users } from "lucide-react";
+import { BarChart3, BookOpen, ClipboardList, Eye, EyeOff, Plus, Trash2, Users } from "lucide-react";
 
 export const Route = createFileRoute("/teacher")({
   head: () => ({
@@ -19,9 +20,9 @@ export const Route = createFileRoute("/teacher")({
 function TeacherPage() {
   const { user, switchRole } = useSession();
   const store = useTeacherStore();
-  const [tab, setTab] = useState<"courses" | "exams">("courses");
+  const stats = useTeacherStats();
+  const [tab, setTab] = useState<"courses" | "exams" | "results">("courses");
 
-  const totalStudents = store.courses.reduce((acc, c) => acc + c.students, 0);
   const published = store.courses.filter((c) => c.published).length;
 
   if (user.role !== "teacher") {
@@ -61,13 +62,14 @@ function TeacherPage() {
         <div className="grid gap-4 sm:grid-cols-3">
           <Kpi icon={BookOpen} label="Cours" value={String(store.courses.length)} tint="bg-primary-soft text-primary" />
           <Kpi icon={Eye} label="Publiés" value={String(published)} tint="bg-success/10 text-success" />
-          <Kpi icon={Users} label="Étudiants" value={String(totalStudents)} tint="bg-warning/15 text-warning-foreground" />
+          <Kpi icon={Users} label="Inscriptions" value={String(stats.totalEnrollments)} tint="bg-warning/15 text-warning-foreground" />
         </div>
 
         <div className="flex gap-2">
           {([
             ["courses", "Mes cours"],
             ["exams", "Examens"],
+            ["results", "Résultats"],
           ] as const).map(([k, label]) => (
             <button
               key={k}
@@ -84,7 +86,9 @@ function TeacherPage() {
           ))}
         </div>
 
-        {tab === "courses" ? <CoursesPanel store={store} /> : <ExamsPanel store={store} />}
+        {tab === "courses" && <CoursesPanel store={store} enrollments={stats.courseStats} />}
+        {tab === "exams" && <ExamsPanel store={store} />}
+        {tab === "results" && <ResultsPanel stats={stats} />}
       </div>
     </AppShell>
   );
@@ -102,7 +106,7 @@ function Kpi({ icon: Icon, label, value, tint }: { icon: React.ComponentType<{ c
   );
 }
 
-function CoursesPanel({ store }: { store: ReturnType<typeof useTeacherStore> }) {
+function CoursesPanel({ store, enrollments }: { store: ReturnType<typeof useTeacherStore>; enrollments: Record<string, number> }) {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("Design");
   const [level, setLevel] = useState<TeacherCourse["level"]>("Intermédiaire");
@@ -136,7 +140,7 @@ function CoursesPanel({ store }: { store: ReturnType<typeof useTeacherStore> }) 
                   </span>
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  {c.category} · {c.level} · {c.students} étudiants
+                  {c.category} · {c.level} · {enrollments[c.id] ?? 0} inscrits
                 </p>
               </div>
               <button
@@ -308,6 +312,67 @@ function ExamsPanel({ store }: { store: ReturnType<typeof useTeacherStore> }) {
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+function ResultsPanel({ stats }: { stats: ReturnType<typeof useTeacherStats> }) {
+  if (stats.loading) {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-10 text-center text-sm text-muted-foreground shadow-soft">
+        Chargement des résultats…
+      </div>
+    );
+  }
+  if (stats.examStats.length === 0) {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-10 text-center text-sm text-muted-foreground shadow-soft">
+        Aucun examen pour l'instant. Créez-en un dans l'onglet « Examens ».
+      </div>
+    );
+  }
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+      <div className="flex items-center gap-2 border-b border-border bg-surface-elevated px-5 py-3">
+        <BarChart3 className="h-4 w-4 text-primary" />
+        <p className="text-sm font-semibold">Résultats par examen</p>
+      </div>
+      <ul className="divide-y divide-border">
+        {stats.examStats.map((e) => (
+          <li key={e.examId} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 px-5 py-4 text-sm">
+            <div>
+              <p className="font-display text-base font-semibold">{e.title}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {e.course} ·{" "}
+                {e.lastSubmittedAt
+                  ? `Dernière soumission ${new Date(e.lastSubmittedAt).toLocaleDateString("fr-FR")}`
+                  : "Aucune soumission"}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="font-display text-lg font-semibold">{e.attempts}</p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Tentatives</p>
+            </div>
+            <div className="text-right">
+              <p
+                className={[
+                  "font-display text-lg font-semibold",
+                  e.avgScore >= 70 ? "text-success" : e.avgScore >= 50 ? "text-warning-foreground" : "text-destructive",
+                ].join(" ")}
+              >
+                {e.attempts ? `${e.avgScore}%` : "—"}
+              </p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Moyenne</p>
+            </div>
+            <div className="h-2 w-32 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${Math.min(100, e.avgScore)}%` }}
+              />
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
