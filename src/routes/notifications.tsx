@@ -1,3 +1,4 @@
+import { RequireAuth } from "@/components/require-auth";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { useReminders } from "@/lib/reminders";
@@ -13,7 +14,7 @@ export const Route = createFileRoute("/notifications")({
       { property: "og:description", content: "Centre de notifications de votre espace Lumen." },
     ],
   }),
-  component: NotificationsPage,
+  component: () => (<RequireAuth><NotificationsPage /></RequireAuth>),
 });
 
 const tabs = ["Toutes", "Non lues", "Lues"] as const;

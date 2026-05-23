@@ -1,3 +1,4 @@
+import { RequireAuth } from "@/components/require-auth";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { exercises, courses } from "@/lib/mock-data";
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/exercises")({
       { property: "og:description", content: "Exercices et ateliers pratiques par cours." },
     ],
   }),
-  component: ExercisesPage,
+  component: () => (<RequireAuth><ExercisesPage /></RequireAuth>),
 });
 
 const tabs = ["Tous", "À faire", "En cours", "Terminé"] as const;

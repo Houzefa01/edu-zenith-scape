@@ -1,3 +1,4 @@
+import { RequireAuth } from "@/components/require-auth";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { useSession } from "@/lib/session";
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/profile")({
       { name: "description", content: "Votre profil Lumen : progression, badges et bio." },
     ],
   }),
-  component: ProfilePage,
+  component: () => (<RequireAuth><ProfilePage /></RequireAuth>),
 });
 
 function ProfilePage() {
