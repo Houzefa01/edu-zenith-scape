@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { useSession } from "@/lib/session";
 import { courses } from "@/lib/mock-data";
+import { supabase } from "@/integrations/supabase/client";
 import { Award, BookOpen, Flame, Mail, MapPin, Pencil, Trophy } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -16,29 +18,32 @@ export const Route = createFileRoute("/profile")({
 });
 
 function ProfilePage() {
-  const { user, setUser } = useSession();
+  const { user, refresh } = useSession();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
   const [bio, setBio] = useState(
     "Designer produit passionnée par les design systems et la recherche utilisateur.",
   );
+  const [saving, setSaving] = useState(false);
 
   const completed = courses.filter((c) => c.progress >= 100).length;
   const inProgress = courses.filter((c) => c.progress > 0 && c.progress < 100).length;
 
-  function save() {
-    setUser({
-      ...user,
-      name,
-      email,
-      initials: name
-        .split(" ")
-        .map((s) => s[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase(),
-    });
+  async function save() {
+    if (!user.id) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ full_name: name, email })
+      .eq("id", user.id);
+    setSaving(false);
+    if (error) {
+      toast.error("Impossible d'enregistrer", { description: error.message });
+      return;
+    }
+    await refresh();
+    toast.success("Profil mis à jour");
     setEditing(false);
   }
 
@@ -112,9 +117,10 @@ function ProfilePage() {
               </button>
               <button
                 onClick={save}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+                disabled={saving}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
               >
-                Enregistrer
+                {saving ? "Enregistrement…" : "Enregistrer"}
               </button>
             </div>
           </section>

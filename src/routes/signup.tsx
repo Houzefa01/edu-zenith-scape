@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { GraduationCap, Mail, Lock, User, BookOpen, Presentation, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -7,6 +7,9 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
+import { toast } from "sonner";
 
 const signupSchema = z
   .object({
@@ -69,11 +72,33 @@ function SignupPage() {
 
   const role = watch("role");
 
+  const navigate = useNavigate();
+
   const onSubmit = async (data: SignupFormData) => {
-    console.log("Signup data:", data);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    // TODO: connect to auth backend
+    const { error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`,
+        data: { full_name: data.fullName, role: data.role },
+      },
+    });
+    if (error) {
+      toast.error("Inscription échouée", { description: error.message });
+      return;
+    }
+    toast.success("Compte créé", {
+      description: "Vérifiez votre email pour confirmer votre inscription.",
+    });
+    navigate({ to: "/login" });
   };
+
+  async function handleGoogle() {
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) toast.error("Google", { description: result.error.message });
+  }
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
@@ -247,6 +272,24 @@ function SignupPage() {
               )}
             </Button>
           </form>
+
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">ou</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGoogle}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface-elevated text-sm font-semibold hover:bg-muted"
+          >
+            <span className="grid h-4 w-4 place-items-center rounded-sm bg-foreground text-[10px] font-bold text-background">
+              G
+            </span>
+            Continuer avec Google
+          </button>
+
 
           <p className="text-center text-sm text-muted-foreground">
             Déjà inscrit ?{" "}
