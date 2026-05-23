@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { useSession } from "@/lib/session";
 import { courses } from "@/lib/mock-data";
+import { supabase } from "@/integrations/supabase/client";
 import { Award, BookOpen, Flame, Mail, MapPin, Pencil, Trophy } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
