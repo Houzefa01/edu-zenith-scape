@@ -1,0 +1,123 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { AppShell } from "@/components/app-shell";
+import { CourseCard } from "@/components/course-card";
+import { courses } from "@/lib/mock-data";
+import { Search, SlidersHorizontal } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+
+export const Route = createFileRoute("/courses")({
+  validateSearch: (s: Record<string, unknown>) => ({ q: typeof s.q === "string" ? s.q : undefined }),
+  head: () => ({
+    meta: [
+      { title: "Catalogue de cours — Lumen" },
+      { name: "description", content: "Explorez le catalogue de cours premium de Lumen : design, dev, produit, data et plus." },
+      { property: "og:title", content: "Catalogue de cours — Lumen" },
+      { property: "og:description", content: "Tous les cours de l'école Lumen." },
+    ],
+  }),
+  component: CoursesPage,
+});
+
+const categories = ["Tous", "Design", "Développement", "Data", "Produit", "Contenu"];
+const levels = ["Tous niveaux", "Débutant", "Intermédiaire", "Avancé"] as const;
+
+function CoursesPage() {
+  const search = Route.useSearch();
+  const [cat, setCat] = useState("Tous");
+  const [lvl, setLvl] = useState<(typeof levels)[number]>("Tous niveaux");
+  const [q, setQ] = useState(search.q ?? "");
+
+  useEffect(() => {
+    if (search.q !== undefined) setQ(search.q);
+  }, [search.q]);
+
+  const filtered = useMemo(
+    () =>
+      courses.filter(
+        (c) =>
+          (cat === "Tous" || c.category === cat) &&
+          (lvl === "Tous niveaux" || c.level === lvl) &&
+          (q === "" || c.title.toLowerCase().includes(q.toLowerCase())),
+      ),
+    [cat, lvl, q],
+  );
+
+  return (
+    <AppShell>
+      <div className="space-y-8 p-4 md:p-8">
+        <header className="flex flex-col gap-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Catalogue</p>
+          <h1 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">
+            Apprenez ce qui compte vraiment
+          </h1>
+          <p className="max-w-2xl text-sm text-muted-foreground">
+            {courses.length} cours conçus avec des praticiens reconnus. Filtrez par niveau, sujet, ou cherchez ce que vous voulez maîtriser.
+          </p>
+        </header>
+
+        <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 shadow-soft md:flex-row md:items-center">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Rechercher un cours…"
+              className="h-11 w-full rounded-lg border border-border bg-surface pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+            <select
+              value={lvl}
+              onChange={(e) => setLvl(e.target.value as typeof lvl)}
+              className="h-11 rounded-lg border border-border bg-surface px-3 text-sm outline-none focus:border-primary"
+            >
+              {levels.map((l) => (
+                <option key={l}>{l}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {categories.map((c) => {
+            const active = c === cat;
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCat(c)}
+                className={[
+                  "rounded-full border px-4 py-1.5 text-xs font-semibold transition",
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-surface-elevated text-foreground/70 hover:text-foreground",
+                ].join(" ")}
+              >
+                {c}
+              </button>
+            );
+          })}
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
+            <p className="font-display text-lg font-semibold">Aucun cours trouvé</p>
+            <p className="mt-1 text-sm text-muted-foreground">Essayez d'élargir vos filtres.</p>
+            <Link to="/courses" onClick={() => { setCat("Tous"); setLvl("Tous niveaux"); setQ(""); }} className="mt-4 inline-block text-sm font-semibold text-primary hover:underline">
+              Réinitialiser les filtres
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((c) => (
+              <CourseCard key={c.id} course={c} />
+            ))}
+          </div>
+        )}
+      </div>
+    </AppShell>
+  );
+}
