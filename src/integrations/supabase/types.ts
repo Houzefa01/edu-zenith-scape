@@ -14,6 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      exam_attempts: {
+        Row: {
+          answers: Json
+          correct_count: number
+          created_at: string
+          duration_seconds: number
+          exam_id: string
+          id: string
+          score: number
+          submitted_at: string
+          total: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          correct_count?: number
+          created_at?: string
+          duration_seconds?: number
+          exam_id: string
+          id?: string
+          score?: number
+          submitted_at?: string
+          total?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          correct_count?: number
+          created_at?: string
+          duration_seconds?: number
+          exam_id?: string
+          id?: string
+          score?: number
+          submitted_at?: string
+          total?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notes: {
+        Row: {
+          body: string
+          course: string | null
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          course?: string | null
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          course?: string | null
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -40,6 +112,78 @@ export type Database = {
           full_name?: string
           id?: string
           subtitle?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      teacher_courses: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          level: string
+          published: boolean
+          students: number
+          teacher_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          level?: string
+          published?: boolean
+          students?: number
+          teacher_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          level?: string
+          published?: boolean
+          students?: number
+          teacher_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      teacher_exams: {
+        Row: {
+          course: string
+          created_at: string
+          duration_min: number
+          exam_date: string
+          id: string
+          published: boolean
+          teacher_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          course?: string
+          created_at?: string
+          duration_min?: number
+          exam_date?: string
+          id?: string
+          published?: boolean
+          teacher_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          course?: string
+          created_at?: string
+          duration_min?: number
+          exam_date?: string
+          id?: string
+          published?: boolean
+          teacher_id?: string
+          title?: string
           updated_at?: string
         }
         Relationships: []
