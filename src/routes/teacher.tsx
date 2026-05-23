@@ -315,3 +315,64 @@ function ExamsPanel({ store }: { store: ReturnType<typeof useTeacherStore> }) {
     </div>
   );
 }
+
+function ResultsPanel({ stats }: { stats: ReturnType<typeof useTeacherStats> }) {
+  if (stats.loading) {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-10 text-center text-sm text-muted-foreground shadow-soft">
+        Chargement des résultats…
+      </div>
+    );
+  }
+  if (stats.examStats.length === 0) {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-10 text-center text-sm text-muted-foreground shadow-soft">
+        Aucun examen pour l'instant. Créez-en un dans l'onglet « Examens ».
+      </div>
+    );
+  }
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+      <div className="flex items-center gap-2 border-b border-border bg-surface-elevated px-5 py-3">
+        <BarChart3 className="h-4 w-4 text-primary" />
+        <p className="text-sm font-semibold">Résultats par examen</p>
+      </div>
+      <ul className="divide-y divide-border">
+        {stats.examStats.map((e) => (
+          <li key={e.examId} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 px-5 py-4 text-sm">
+            <div>
+              <p className="font-display text-base font-semibold">{e.title}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {e.course} ·{" "}
+                {e.lastSubmittedAt
+                  ? `Dernière soumission ${new Date(e.lastSubmittedAt).toLocaleDateString("fr-FR")}`
+                  : "Aucune soumission"}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="font-display text-lg font-semibold">{e.attempts}</p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Tentatives</p>
+            </div>
+            <div className="text-right">
+              <p
+                className={[
+                  "font-display text-lg font-semibold",
+                  e.avgScore >= 70 ? "text-success" : e.avgScore >= 50 ? "text-warning-foreground" : "text-destructive",
+                ].join(" ")}
+              >
+                {e.attempts ? `${e.avgScore}%` : "—"}
+              </p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Moyenne</p>
+            </div>
+            <div className="h-2 w-32 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${Math.min(100, e.avgScore)}%` }}
+              />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
