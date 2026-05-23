@@ -126,3 +126,77 @@ function CoursesPage() {
     </AppShell>
   );
 }
+
+function PublishedCoursesSection() {
+  const { courses: list, enrolledIds, loading, enroll, unenroll } = usePublishedCourses();
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-end justify-between">
+        <div>
+          <h2 className="font-display text-xl font-semibold inline-flex items-center gap-2">
+            <GraduationCap className="h-5 w-5 text-primary" /> Cours des enseignants
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Publiés par les enseignants Lumen — inscrivez-vous en un clic.
+          </p>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="grid place-items-center rounded-2xl border border-dashed border-border bg-card p-10 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+        </div>
+      ) : list.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+          Aucun cours publié pour le moment.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {list.map((c) => {
+            const enrolled = enrolledIds.has(c.id);
+            return (
+              <div
+                key={c.id}
+                className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 shadow-soft"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <span className="rounded-md bg-primary-soft px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                    {c.category || "Cours"}
+                  </span>
+                  <span className="rounded-md bg-muted px-2 py-1 text-[10px] font-semibold text-foreground/70">
+                    {c.level}
+                  </span>
+                </div>
+                <h3 className="font-display text-base font-semibold leading-snug">{c.title}</h3>
+                <div className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <Users className="h-3.5 w-3.5" /> {c.students} inscrit{c.students > 1 ? "s" : ""}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => (enrolled ? unenroll(c.id) : enroll(c.id))}
+                  className={[
+                    "mt-auto inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition",
+                    enrolled
+                      ? "border border-border bg-surface-elevated text-foreground hover:bg-muted"
+                      : "bg-primary text-primary-foreground hover:opacity-90",
+                  ].join(" ")}
+                >
+                  {enrolled ? (
+                    <>
+                      <Check className="h-4 w-4" /> Inscrit — se désinscrire
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-4 w-4" /> S'inscrire au cours
+                    </>
+                  )}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
