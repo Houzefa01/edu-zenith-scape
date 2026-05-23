@@ -72,11 +72,33 @@ function SignupPage() {
 
   const role = watch("role");
 
+  const navigate = useNavigate();
+
   const onSubmit = async (data: SignupFormData) => {
-    console.log("Signup data:", data);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    // TODO: connect to auth backend
+    const { error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`,
+        data: { full_name: data.fullName, role: data.role },
+      },
+    });
+    if (error) {
+      toast.error("Inscription échouée", { description: error.message });
+      return;
+    }
+    toast.success("Compte créé", {
+      description: "Vérifiez votre email pour confirmer votre inscription.",
+    });
+    navigate({ to: "/login" });
   };
+
+  async function handleGoogle() {
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) toast.error("Google", { description: result.error.message });
+  }
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
