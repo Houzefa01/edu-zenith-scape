@@ -273,6 +273,24 @@ function SignupPage() {
             </Button>
           </form>
 
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">ou</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGoogle}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface-elevated text-sm font-semibold hover:bg-muted"
+          >
+            <span className="grid h-4 w-4 place-items-center rounded-sm bg-foreground text-[10px] font-bold text-background">
+              G
+            </span>
+            Continuer avec Google
+          </button>
+
+
           <p className="text-center text-sm text-muted-foreground">
             Déjà inscrit ?{" "}
             <Link to="/login" className="font-semibold text-primary hover:underline">
