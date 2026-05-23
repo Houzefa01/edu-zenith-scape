@@ -2,9 +2,10 @@ import { RequireAuth } from "@/components/require-auth";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { useTeacherStore, type TeacherCourse } from "@/lib/teacher-store";
+import { useTeacherStats } from "@/lib/teacher-stats";
 import { useSession } from "@/lib/session";
 import { useState } from "react";
-import { BookOpen, ClipboardList, Eye, EyeOff, Plus, Trash2, Users } from "lucide-react";
+import { BarChart3, BookOpen, ClipboardList, Eye, EyeOff, Plus, Trash2, Users } from "lucide-react";
 
 export const Route = createFileRoute("/teacher")({
   head: () => ({
@@ -19,9 +20,9 @@ export const Route = createFileRoute("/teacher")({
 function TeacherPage() {
   const { user, switchRole } = useSession();
   const store = useTeacherStore();
-  const [tab, setTab] = useState<"courses" | "exams">("courses");
+  const stats = useTeacherStats();
+  const [tab, setTab] = useState<"courses" | "exams" | "results">("courses");
 
-  const totalStudents = store.courses.reduce((acc, c) => acc + c.students, 0);
   const published = store.courses.filter((c) => c.published).length;
 
   if (user.role !== "teacher") {
@@ -61,13 +62,14 @@ function TeacherPage() {
         <div className="grid gap-4 sm:grid-cols-3">
           <Kpi icon={BookOpen} label="Cours" value={String(store.courses.length)} tint="bg-primary-soft text-primary" />
           <Kpi icon={Eye} label="Publiés" value={String(published)} tint="bg-success/10 text-success" />
-          <Kpi icon={Users} label="Étudiants" value={String(totalStudents)} tint="bg-warning/15 text-warning-foreground" />
+          <Kpi icon={Users} label="Inscriptions" value={String(stats.totalEnrollments)} tint="bg-warning/15 text-warning-foreground" />
         </div>
 
         <div className="flex gap-2">
           {([
             ["courses", "Mes cours"],
             ["exams", "Examens"],
+            ["results", "Résultats"],
           ] as const).map(([k, label]) => (
             <button
               key={k}
@@ -84,7 +86,9 @@ function TeacherPage() {
           ))}
         </div>
 
-        {tab === "courses" ? <CoursesPanel store={store} /> : <ExamsPanel store={store} />}
+        {tab === "courses" && <CoursesPanel store={store} enrollments={stats.courseStats} />}
+        {tab === "exams" && <ExamsPanel store={store} />}
+        {tab === "results" && <ResultsPanel stats={stats} />}
       </div>
     </AppShell>
   );
