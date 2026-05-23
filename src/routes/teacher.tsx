@@ -106,7 +106,7 @@ function Kpi({ icon: Icon, label, value, tint }: { icon: React.ComponentType<{ c
   );
 }
 
-function CoursesPanel({ store }: { store: ReturnType<typeof useTeacherStore> }) {
+function CoursesPanel({ store, enrollments }: { store: ReturnType<typeof useTeacherStore>; enrollments: Record<string, number> }) {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("Design");
   const [level, setLevel] = useState<TeacherCourse["level"]>("Intermédiaire");
@@ -140,7 +140,7 @@ function CoursesPanel({ store }: { store: ReturnType<typeof useTeacherStore> }) 
                   </span>
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  {c.category} · {c.level} · {c.students} étudiants
+                  {c.category} · {c.level} · {enrollments[c.id] ?? 0} inscrits
                 </p>
               </div>
               <button
