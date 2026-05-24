@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   Circle,
   Loader2,
+  MessageCircle,
   PlayCircle,
   Send,
   Sparkles,
@@ -230,9 +231,18 @@ function LearnPage() {
   return (
     <AppShell>
       <div className="space-y-6 p-4 md:p-8">
-        <Link to="/courses" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ChevronLeft className="h-4 w-4" /> Catalogue
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link to="/courses" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <ChevronLeft className="h-4 w-4" /> Catalogue
+          </Link>
+          <Link
+            to="/chat/$courseId"
+            params={{ courseId: course.id }}
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold shadow-soft hover:bg-muted"
+          >
+            <MessageCircle className="h-4 w-4 text-primary" /> Chat de classe
+          </Link>
+        </div>
 
         <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>

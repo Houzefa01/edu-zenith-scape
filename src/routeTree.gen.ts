@@ -27,6 +27,7 @@ import { Route as LearnCourseIdRouteImport } from './routes/learn.$courseId'
 import { Route as ExercisesExerciseIdRouteImport } from './routes/exercises.$exerciseId'
 import { Route as ExamsExamIdRouteImport } from './routes/exams.$examId'
 import { Route as CoursesCourseIdRouteImport } from './routes/courses.$courseId'
+import { Route as ChatCourseIdRouteImport } from './routes/chat.$courseId'
 
 const TeacherRoute = TeacherRouteImport.update({
   id: '/teacher',
@@ -118,6 +119,11 @@ const CoursesCourseIdRoute = CoursesCourseIdRouteImport.update({
   path: '/$courseId',
   getParentRoute: () => CoursesRoute,
 } as any)
+const ChatCourseIdRoute = ChatCourseIdRouteImport.update({
+  id: '/chat/$courseId',
+  path: '/chat/$courseId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/teacher': typeof TeacherRoute
+  '/chat/$courseId': typeof ChatCourseIdRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/exams/$examId': typeof ExamsExamIdRoute
   '/exercises/$exerciseId': typeof ExercisesExerciseIdRoute
@@ -154,6 +161,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/teacher': typeof TeacherRoute
+  '/chat/$courseId': typeof ChatCourseIdRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/exams/$examId': typeof ExamsExamIdRoute
   '/exercises/$exerciseId': typeof ExercisesExerciseIdRoute
@@ -175,6 +183,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/teacher': typeof TeacherRoute
+  '/chat/$courseId': typeof ChatCourseIdRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/exams/$examId': typeof ExamsExamIdRoute
   '/exercises/$exerciseId': typeof ExercisesExerciseIdRoute
@@ -197,6 +206,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/teacher'
+    | '/chat/$courseId'
     | '/courses/$courseId'
     | '/exams/$examId'
     | '/exercises/$exerciseId'
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/teacher'
+    | '/chat/$courseId'
     | '/courses/$courseId'
     | '/exams/$examId'
     | '/exercises/$exerciseId'
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/teacher'
+    | '/chat/$courseId'
     | '/courses/$courseId'
     | '/exams/$examId'
     | '/exercises/$exerciseId'
@@ -258,6 +270,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TeacherRoute: typeof TeacherRoute
+  ChatCourseIdRoute: typeof ChatCourseIdRoute
   LearnCourseIdRoute: typeof LearnCourseIdRoute
 }
 
@@ -389,6 +402,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesCourseIdRouteImport
       parentRoute: typeof CoursesRoute
     }
+    '/chat/$courseId': {
+      id: '/chat/$courseId'
+      path: '/chat/$courseId'
+      fullPath: '/chat/$courseId'
+      preLoaderRoute: typeof ChatCourseIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -440,6 +460,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TeacherRoute: TeacherRoute,
+  ChatCourseIdRoute: ChatCourseIdRoute,
   LearnCourseIdRoute: LearnCourseIdRoute,
 }
 export const routeTree = rootRouteImport
