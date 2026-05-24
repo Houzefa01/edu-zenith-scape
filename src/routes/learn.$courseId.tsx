@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   Circle,
   Loader2,
+  MessageCircle,
   PlayCircle,
   Send,
   Sparkles,
