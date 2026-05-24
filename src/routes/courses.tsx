@@ -172,26 +172,35 @@ function PublishedCoursesSection() {
                 <div className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                   <Users className="h-3.5 w-3.5" /> {c.students} inscrit{c.students > 1 ? "s" : ""}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => (enrolled ? unenroll(c.id) : enroll(c.id))}
-                  className={[
-                    "mt-auto inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition",
-                    enrolled
-                      ? "border border-border bg-surface-elevated text-foreground hover:bg-muted"
-                      : "bg-primary text-primary-foreground hover:opacity-90",
-                  ].join(" ")}
-                >
-                  {enrolled ? (
-                    <>
-                      <Check className="h-4 w-4" /> Inscrit — se désinscrire
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="h-4 w-4" /> S'inscrire au cours
-                    </>
+                <div className="mt-auto flex gap-2">
+                  {enrolled && (
+                    <Link
+                      to="/learn/$courseId"
+                      params={{ courseId: c.id }}
+                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+                    >
+                      Accéder au cours
+                    </Link>
                   )}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => (enrolled ? unenroll(c.id) : enroll(c.id))}
+                    className={[
+                      "inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition",
+                      enrolled
+                        ? "border border-border bg-surface-elevated text-foreground hover:bg-muted"
+                        : "flex-1 bg-primary text-primary-foreground hover:opacity-90",
+                    ].join(" ")}
+                  >
+                    {enrolled ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <>
+                        <UserPlus className="h-4 w-4" /> S'inscrire au cours
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             );
           })}
