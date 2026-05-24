@@ -139,14 +139,13 @@ function LearnPage() {
   }, [load, user.id]);
 
   async function upsert(item_key: string, patch: Partial<ProgressRow>) {
-    const next: ProgressRow = {
+    const base: ProgressRow = progress[item_key] ?? {
       item_key,
       completed: false,
       submission: "",
       score: 0,
-      ...progress[item_key],
-      ...patch,
     };
+    const next: ProgressRow = { ...base, ...patch, item_key };
     setProgress((prev) => ({ ...prev, [item_key]: next }));
     await supabase.from("course_progress").upsert(
       {
