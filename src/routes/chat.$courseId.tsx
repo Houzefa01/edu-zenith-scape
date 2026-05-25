@@ -430,16 +430,19 @@ function ChatPage() {
           )}
         </div>
 
+        <TypingIndicator users={Object.values(typingUsers).map((t) => t.name)} />
+
         <form
           onSubmit={(e) => {
             e.preventDefault();
             send();
           }}
-          className="mt-4 flex items-end gap-2"
+          className="mt-2 flex items-end gap-2"
         >
           <textarea
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onBlur={() => sendTyping("stop")}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
