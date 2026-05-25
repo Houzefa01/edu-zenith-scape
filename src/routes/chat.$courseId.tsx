@@ -116,7 +116,7 @@ function ChatPage() {
   useEffect(() => {
     if (!allowed) return;
     const channel = supabase
-      .channel(`course-chat-${courseId}`)
+      .channel(`course-chat-${courseId}`, { config: { broadcast: { self: false } } })
       .on(
         "postgres_changes",
         {
@@ -130,6 +130,14 @@ function ChatPage() {
             const m = payload.new as Message;
             if (prev.some((p) => p.id === m.id)) return prev;
             return [...prev, m];
+          });
+          // Clear typing indicator for this author when their message arrives
+          const m = payload.new as Message;
+          setTypingUsers((prev) => {
+            if (!prev[m.author_id]) return prev;
+            const next = { ...prev };
+            delete next[m.author_id];
+            return next;
           });
         },
       )
@@ -146,12 +154,45 @@ function ChatPage() {
           setMessages((prev) => prev.filter((m) => m.id !== removed.id));
         },
       )
+      .on("broadcast", { event: "typing" }, (payload) => {
+        const p = payload.payload as { user_id: string; name: string; state: "start" | "stop" };
+        if (!p?.user_id || p.user_id === user.id) return;
+        setTypingUsers((prev) => {
+          const next = { ...prev };
+          if (p.state === "stop") {
+            delete next[p.user_id];
+          } else {
+            next[p.user_id] = { name: p.name || "Quelqu'un", at: Date.now() };
+          }
+          return next;
+        });
+      })
       .subscribe();
 
+    channelRef.current = channel;
+
     return () => {
+      channelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [allowed, courseId]);
+  }, [allowed, courseId, user.id]);
+
+  // Expire stale typing indicators (>4s without refresh)
+  useEffect(() => {
+    const id = setInterval(() => {
+      setTypingUsers((prev) => {
+        const now = Date.now();
+        let changed = false;
+        const next: typeof prev = {};
+        for (const [k, v] of Object.entries(prev)) {
+          if (now - v.at < 4000) next[k] = v;
+          else changed = true;
+        }
+        return changed ? next : prev;
+      });
+    }, 1500);
+    return () => clearInterval(id);
+  }, []);
 
   // Auto-scroll to bottom only when the user is already near the bottom
   useEffect(() => {
