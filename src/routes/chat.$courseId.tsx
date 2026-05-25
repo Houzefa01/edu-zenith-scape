@@ -250,6 +250,7 @@ function ChatPage() {
 
         <div
           ref={scrollRef}
+          onScroll={onScroll}
           className="flex-1 overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-soft"
         >
           {messages.length === 0 ? (
@@ -261,6 +262,23 @@ function ChatPage() {
             </div>
           ) : (
             <div className="space-y-6">
+              <div className="flex items-center justify-center py-1 text-xs text-muted-foreground">
+                {loadingMore ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Chargement…
+                  </span>
+                ) : hasMore ? (
+                  <button
+                    onClick={loadMore}
+                    className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-3 py-1 hover:text-foreground"
+                  >
+                    <ChevronUp className="h-3.5 w-3.5" /> Charger les messages précédents
+                  </button>
+                ) : (
+                  <span className="opacity-70">— Début de la conversation —</span>
+                )}
+              </div>
+
               {grouped.map(([day, list]) => (
                 <div key={day}>
                   <div className="mb-3 flex items-center gap-3">
