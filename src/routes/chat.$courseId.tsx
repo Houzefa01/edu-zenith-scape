@@ -491,3 +491,25 @@ function groupByDay(msgs: Message[]): [string, Message[]][] {
   }
   return Array.from(map.entries());
 }
+
+function TypingIndicator({ users }: { users: string[] }) {
+  if (users.length === 0) {
+    return <div className="h-5" aria-hidden />;
+  }
+  const label =
+    users.length === 1
+      ? `${users[0]} est en train d'écrire`
+      : users.length === 2
+        ? `${users[0]} et ${users[1]} sont en train d'écrire`
+        : `${users[0]} et ${users.length - 1} autres sont en train d'écrire`;
+  return (
+    <div className="mt-2 flex h-5 items-center gap-2 px-1 text-xs text-muted-foreground">
+      <span className="inline-flex items-center gap-1">
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.2s]" />
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.1s]" />
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" />
+      </span>
+      <span>{label}…</span>
+    </div>
+  );
+}
