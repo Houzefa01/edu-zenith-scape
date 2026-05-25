@@ -4,7 +4,9 @@ import { AppShell } from "@/components/app-shell";
 import { RequireAuth } from "@/components/require-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
-import { ChevronLeft, Loader2, Send, ShieldCheck, Trash2, Users } from "lucide-react";
+import { ChevronLeft, ChevronUp, Loader2, Send, ShieldCheck, Trash2, Users } from "lucide-react";
+
+const PAGE_SIZE = 30;
 
 export const Route = createFileRoute("/chat/$courseId")({
   head: () => ({
