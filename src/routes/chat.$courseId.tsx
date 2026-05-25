@@ -149,10 +149,27 @@ function ChatPage() {
     };
   }, [allowed, courseId]);
 
-  // Auto-scroll on new messages
+  // Auto-scroll to bottom only when the user is already near the bottom
   useEffect(() => {
+    if (!shouldStickBottom.current) return;
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
+
+  // After initial load, jump to bottom (no smooth)
+  useEffect(() => {
+    if (!loading && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [loading]);
+
+  function onScroll(e: React.UIEvent<HTMLDivElement>) {
+    const el = e.currentTarget;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    shouldStickBottom.current = distanceFromBottom < 80;
+    if (el.scrollTop < 120 && hasMore && !loadingMore) {
+      loadMore();
+    }
+  }
 
   const isTeacher = course?.teacher_id === user.id;
 
