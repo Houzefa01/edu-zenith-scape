@@ -77,6 +77,27 @@ export type Database = {
         }
         Relationships: []
       }
+      course_typing: {
+        Row: {
+          author_name: string
+          course_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          author_name?: string
+          course_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          author_name?: string
+          course_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       enrollments: {
         Row: {
           course_id: string
