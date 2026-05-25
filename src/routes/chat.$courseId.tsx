@@ -40,7 +40,10 @@ function ChatPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const shouldStickBottom = useRef(true);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -51,21 +54,55 @@ function ChatPage() {
       .maybeSingle();
     setCourse(c as { id: string; title: string; teacher_id: string } | null);
 
+    // Fetch the newest PAGE_SIZE, then reverse to ascending order
     const { data: msgs, error } = await supabase
       .from("course_messages")
       .select("*")
       .eq("course_id", courseId)
-      .order("created_at", { ascending: true })
-      .limit(200);
+      .order("created_at", { ascending: false })
+      .limit(PAGE_SIZE);
 
     if (error) {
       setAllowed(false);
     } else {
       setAllowed(true);
-      setMessages((msgs ?? []) as Message[]);
+      const list = ((msgs ?? []) as Message[]).slice().reverse();
+      setMessages(list);
+      setHasMore((msgs ?? []).length === PAGE_SIZE);
     }
     setLoading(false);
   }, [courseId]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || messages.length === 0) return;
+    setLoadingMore(true);
+    const container = scrollRef.current;
+    const prevHeight = container?.scrollHeight ?? 0;
+    const prevTop = container?.scrollTop ?? 0;
+
+    const oldest = messages[0].created_at;
+    const { data, error } = await supabase
+      .from("course_messages")
+      .select("*")
+      .eq("course_id", courseId)
+      .lt("created_at", oldest)
+      .order("created_at", { ascending: false })
+      .limit(PAGE_SIZE);
+
+    if (!error) {
+      const older = ((data ?? []) as Message[]).slice().reverse();
+      setMessages((prev) => [...older, ...prev]);
+      setHasMore((data ?? []).length === PAGE_SIZE);
+      // Preserve scroll position after prepend
+      requestAnimationFrame(() => {
+        if (container) {
+          const newHeight = container.scrollHeight;
+          container.scrollTop = newHeight - prevHeight + prevTop;
+        }
+      });
+    }
+    setLoadingMore(false);
+  }, [courseId, hasMore, loadingMore, messages]);
 
   useEffect(() => {
     load();
