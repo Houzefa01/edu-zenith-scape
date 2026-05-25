@@ -115,8 +115,17 @@ function ChatPage() {
   // Realtime subscription
   useEffect(() => {
     if (!allowed) return;
+    const handleTypingUpsert = (payload: { new: Record<string, unknown> }) => {
+      const r = payload.new as { user_id: string; author_name: string };
+      if (!r?.user_id || r.user_id === user.id) return;
+      setTypingUsers((prev) => ({
+        ...prev,
+        [r.user_id]: { name: r.author_name || "Quelqu'un", at: Date.now() },
+      }));
+    };
+
     const channel = supabase
-      .channel(`course-chat-${courseId}`, { config: { broadcast: { self: false } } })
+      .channel(`course-chat-${courseId}`)
       .on(
         "postgres_changes",
         {
@@ -131,7 +140,6 @@ function ChatPage() {
             if (prev.some((p) => p.id === m.id)) return prev;
             return [...prev, m];
           });
-          // Clear typing indicator for this author when their message arrives
           const m = payload.new as Message;
           setTypingUsers((prev) => {
             if (!prev[m.author_id]) return prev;
@@ -154,19 +162,30 @@ function ChatPage() {
           setMessages((prev) => prev.filter((m) => m.id !== removed.id));
         },
       )
-      .on("broadcast", { event: "typing" }, (payload) => {
-        const p = payload.payload as { user_id: string; name: string; state: "start" | "stop" };
-        if (!p?.user_id || p.user_id === user.id) return;
-        setTypingUsers((prev) => {
-          const next = { ...prev };
-          if (p.state === "stop") {
-            delete next[p.user_id];
-          } else {
-            next[p.user_id] = { name: p.name || "Quelqu'un", at: Date.now() };
-          }
-          return next;
-        });
-      })
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "course_typing", filter: `course_id=eq.${courseId}` },
+        handleTypingUpsert,
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "course_typing", filter: `course_id=eq.${courseId}` },
+        handleTypingUpsert,
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "course_typing", filter: `course_id=eq.${courseId}` },
+        (payload) => {
+          const r = payload.old as { user_id: string };
+          if (!r?.user_id) return;
+          setTypingUsers((prev) => {
+            if (!prev[r.user_id]) return prev;
+            const next = { ...prev };
+            delete next[r.user_id];
+            return next;
+          });
+        },
+      )
       .subscribe();
 
     channelRef.current = channel;
@@ -223,16 +242,26 @@ function ChatPage() {
     "Anonyme";
 
   const sendTyping = useCallback(
-    (state: "start" | "stop") => {
-      const ch = channelRef.current;
-      if (!ch) return;
-      ch.send({
-        type: "broadcast",
-        event: "typing",
-        payload: { user_id: user.id, name: authorName, state },
-      });
+    async (state: "start" | "stop") => {
+      if (state === "stop") {
+        await supabase
+          .from("course_typing")
+          .delete()
+          .eq("course_id", courseId)
+          .eq("user_id", user.id);
+      } else {
+        await supabase.from("course_typing").upsert(
+          {
+            course_id: courseId,
+            user_id: user.id,
+            author_name: authorName,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "course_id,user_id" },
+        );
+      }
     },
-    [user.id, authorName],
+    [courseId, user.id, authorName],
   );
 
   function handleInputChange(value: string) {
