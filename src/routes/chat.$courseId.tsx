@@ -242,16 +242,26 @@ function ChatPage() {
     "Anonyme";
 
   const sendTyping = useCallback(
-    (state: "start" | "stop") => {
-      const ch = channelRef.current;
-      if (!ch) return;
-      ch.send({
-        type: "broadcast",
-        event: "typing",
-        payload: { user_id: user.id, name: authorName, state },
-      });
+    async (state: "start" | "stop") => {
+      if (state === "stop") {
+        await supabase
+          .from("course_typing")
+          .delete()
+          .eq("course_id", courseId)
+          .eq("user_id", user.id);
+      } else {
+        await supabase.from("course_typing").upsert(
+          {
+            course_id: courseId,
+            user_id: user.id,
+            author_name: authorName,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "course_id,user_id" },
+        );
+      }
     },
-    [user.id, authorName],
+    [courseId, user.id, authorName],
   );
 
   function handleInputChange(value: string) {
