@@ -217,22 +217,61 @@ function ChatPage() {
   }
 
   const isTeacher = course?.teacher_id === user.id;
+  const authorName =
+    (user as { full_name?: string; email?: string }).full_name ||
+    (user as { email?: string }).email?.split("@")[0] ||
+    "Anonyme";
+
+  const sendTyping = useCallback(
+    (state: "start" | "stop") => {
+      const ch = channelRef.current;
+      if (!ch) return;
+      ch.send({
+        type: "broadcast",
+        event: "typing",
+        payload: { user_id: user.id, name: authorName, state },
+      });
+    },
+    [user.id, authorName],
+  );
+
+  function handleInputChange(value: string) {
+    setInput(value);
+    const now = Date.now();
+    if (value.trim().length > 0) {
+      // Throttle "start" broadcasts to once every 2s
+      if (now - lastTypingSentRef.current > 2000) {
+        lastTypingSentRef.current = now;
+        sendTyping("start");
+      }
+      if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
+      typingStopTimerRef.current = setTimeout(() => {
+        sendTyping("stop");
+        lastTypingSentRef.current = 0;
+      }, 3000);
+    } else {
+      if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
+      sendTyping("stop");
+      lastTypingSentRef.current = 0;
+    }
+  }
 
   async function send() {
     const body = input.trim();
     if (!body || sending) return;
     setSending(true);
-    const author_name =
-      (user as { full_name?: string; email?: string }).full_name ||
-      (user as { email?: string }).email?.split("@")[0] ||
-      "Anonyme";
     const { error } = await supabase.from("course_messages").insert({
       course_id: courseId,
       author_id: user.id,
-      author_name,
+      author_name: authorName,
       body,
     });
-    if (!error) setInput("");
+    if (!error) {
+      setInput("");
+      if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
+      lastTypingSentRef.current = 0;
+      sendTyping("stop");
+    }
     setSending(false);
   }
 
