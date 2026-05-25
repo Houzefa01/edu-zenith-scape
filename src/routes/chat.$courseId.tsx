@@ -4,7 +4,9 @@ import { AppShell } from "@/components/app-shell";
 import { RequireAuth } from "@/components/require-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
-import { ChevronLeft, Loader2, Send, ShieldCheck, Trash2, Users } from "lucide-react";
+import { ChevronLeft, ChevronUp, Loader2, Send, ShieldCheck, Trash2, Users } from "lucide-react";
+
+const PAGE_SIZE = 30;
 
 export const Route = createFileRoute("/chat/$courseId")({
   head: () => ({
@@ -38,7 +40,10 @@ function ChatPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const shouldStickBottom = useRef(true);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -49,21 +54,55 @@ function ChatPage() {
       .maybeSingle();
     setCourse(c as { id: string; title: string; teacher_id: string } | null);
 
+    // Fetch the newest PAGE_SIZE, then reverse to ascending order
     const { data: msgs, error } = await supabase
       .from("course_messages")
       .select("*")
       .eq("course_id", courseId)
-      .order("created_at", { ascending: true })
-      .limit(200);
+      .order("created_at", { ascending: false })
+      .limit(PAGE_SIZE);
 
     if (error) {
       setAllowed(false);
     } else {
       setAllowed(true);
-      setMessages((msgs ?? []) as Message[]);
+      const list = ((msgs ?? []) as Message[]).slice().reverse();
+      setMessages(list);
+      setHasMore((msgs ?? []).length === PAGE_SIZE);
     }
     setLoading(false);
   }, [courseId]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || messages.length === 0) return;
+    setLoadingMore(true);
+    const container = scrollRef.current;
+    const prevHeight = container?.scrollHeight ?? 0;
+    const prevTop = container?.scrollTop ?? 0;
+
+    const oldest = messages[0].created_at;
+    const { data, error } = await supabase
+      .from("course_messages")
+      .select("*")
+      .eq("course_id", courseId)
+      .lt("created_at", oldest)
+      .order("created_at", { ascending: false })
+      .limit(PAGE_SIZE);
+
+    if (!error) {
+      const older = ((data ?? []) as Message[]).slice().reverse();
+      setMessages((prev) => [...older, ...prev]);
+      setHasMore((data ?? []).length === PAGE_SIZE);
+      // Preserve scroll position after prepend
+      requestAnimationFrame(() => {
+        if (container) {
+          const newHeight = container.scrollHeight;
+          container.scrollTop = newHeight - prevHeight + prevTop;
+        }
+      });
+    }
+    setLoadingMore(false);
+  }, [courseId, hasMore, loadingMore, messages]);
 
   useEffect(() => {
     load();
@@ -110,10 +149,27 @@ function ChatPage() {
     };
   }, [allowed, courseId]);
 
-  // Auto-scroll on new messages
+  // Auto-scroll to bottom only when the user is already near the bottom
   useEffect(() => {
+    if (!shouldStickBottom.current) return;
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
+
+  // After initial load, jump to bottom (no smooth)
+  useEffect(() => {
+    if (!loading && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [loading]);
+
+  function onScroll(e: React.UIEvent<HTMLDivElement>) {
+    const el = e.currentTarget;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    shouldStickBottom.current = distanceFromBottom < 80;
+    if (el.scrollTop < 120 && hasMore && !loadingMore) {
+      loadMore();
+    }
+  }
 
   const isTeacher = course?.teacher_id === user.id;
 
@@ -194,6 +250,7 @@ function ChatPage() {
 
         <div
           ref={scrollRef}
+          onScroll={onScroll}
           className="flex-1 overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-soft"
         >
           {messages.length === 0 ? (
@@ -205,6 +262,23 @@ function ChatPage() {
             </div>
           ) : (
             <div className="space-y-6">
+              <div className="flex items-center justify-center py-1 text-xs text-muted-foreground">
+                {loadingMore ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Chargement…
+                  </span>
+                ) : hasMore ? (
+                  <button
+                    onClick={loadMore}
+                    className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-3 py-1 hover:text-foreground"
+                  >
+                    <ChevronUp className="h-3.5 w-3.5" /> Charger les messages précédents
+                  </button>
+                ) : (
+                  <span className="opacity-70">— Début de la conversation —</span>
+                )}
+              </div>
+
               {grouped.map(([day, list]) => (
                 <div key={day}>
                   <div className="mb-3 flex items-center gap-3">
