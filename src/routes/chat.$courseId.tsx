@@ -42,8 +42,12 @@ function ChatPage() {
   const [sending, setSending] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<Record<string, { name: string; at: number }>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const shouldStickBottom = useRef(true);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const lastTypingSentRef = useRef(0);
+  const typingStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -112,7 +116,7 @@ function ChatPage() {
   useEffect(() => {
     if (!allowed) return;
     const channel = supabase
-      .channel(`course-chat-${courseId}`)
+      .channel(`course-chat-${courseId}`, { config: { broadcast: { self: false } } })
       .on(
         "postgres_changes",
         {
@@ -126,6 +130,14 @@ function ChatPage() {
             const m = payload.new as Message;
             if (prev.some((p) => p.id === m.id)) return prev;
             return [...prev, m];
+          });
+          // Clear typing indicator for this author when their message arrives
+          const m = payload.new as Message;
+          setTypingUsers((prev) => {
+            if (!prev[m.author_id]) return prev;
+            const next = { ...prev };
+            delete next[m.author_id];
+            return next;
           });
         },
       )
@@ -142,12 +154,45 @@ function ChatPage() {
           setMessages((prev) => prev.filter((m) => m.id !== removed.id));
         },
       )
+      .on("broadcast", { event: "typing" }, (payload) => {
+        const p = payload.payload as { user_id: string; name: string; state: "start" | "stop" };
+        if (!p?.user_id || p.user_id === user.id) return;
+        setTypingUsers((prev) => {
+          const next = { ...prev };
+          if (p.state === "stop") {
+            delete next[p.user_id];
+          } else {
+            next[p.user_id] = { name: p.name || "Quelqu'un", at: Date.now() };
+          }
+          return next;
+        });
+      })
       .subscribe();
 
+    channelRef.current = channel;
+
     return () => {
+      channelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [allowed, courseId]);
+  }, [allowed, courseId, user.id]);
+
+  // Expire stale typing indicators (>4s without refresh)
+  useEffect(() => {
+    const id = setInterval(() => {
+      setTypingUsers((prev) => {
+        const now = Date.now();
+        let changed = false;
+        const next: typeof prev = {};
+        for (const [k, v] of Object.entries(prev)) {
+          if (now - v.at < 4000) next[k] = v;
+          else changed = true;
+        }
+        return changed ? next : prev;
+      });
+    }, 1500);
+    return () => clearInterval(id);
+  }, []);
 
   // Auto-scroll to bottom only when the user is already near the bottom
   useEffect(() => {
@@ -172,22 +217,61 @@ function ChatPage() {
   }
 
   const isTeacher = course?.teacher_id === user.id;
+  const authorName =
+    (user as { full_name?: string; email?: string }).full_name ||
+    (user as { email?: string }).email?.split("@")[0] ||
+    "Anonyme";
+
+  const sendTyping = useCallback(
+    (state: "start" | "stop") => {
+      const ch = channelRef.current;
+      if (!ch) return;
+      ch.send({
+        type: "broadcast",
+        event: "typing",
+        payload: { user_id: user.id, name: authorName, state },
+      });
+    },
+    [user.id, authorName],
+  );
+
+  function handleInputChange(value: string) {
+    setInput(value);
+    const now = Date.now();
+    if (value.trim().length > 0) {
+      // Throttle "start" broadcasts to once every 2s
+      if (now - lastTypingSentRef.current > 2000) {
+        lastTypingSentRef.current = now;
+        sendTyping("start");
+      }
+      if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
+      typingStopTimerRef.current = setTimeout(() => {
+        sendTyping("stop");
+        lastTypingSentRef.current = 0;
+      }, 3000);
+    } else {
+      if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
+      sendTyping("stop");
+      lastTypingSentRef.current = 0;
+    }
+  }
 
   async function send() {
     const body = input.trim();
     if (!body || sending) return;
     setSending(true);
-    const author_name =
-      (user as { full_name?: string; email?: string }).full_name ||
-      (user as { email?: string }).email?.split("@")[0] ||
-      "Anonyme";
     const { error } = await supabase.from("course_messages").insert({
       course_id: courseId,
       author_id: user.id,
-      author_name,
+      author_name: authorName,
       body,
     });
-    if (!error) setInput("");
+    if (!error) {
+      setInput("");
+      if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
+      lastTypingSentRef.current = 0;
+      sendTyping("stop");
+    }
     setSending(false);
   }
 
@@ -346,16 +430,19 @@ function ChatPage() {
           )}
         </div>
 
+        <TypingIndicator users={Object.values(typingUsers).map((t) => t.name)} />
+
         <form
           onSubmit={(e) => {
             e.preventDefault();
             send();
           }}
-          className="mt-4 flex items-end gap-2"
+          className="mt-2 flex items-end gap-2"
         >
           <textarea
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onBlur={() => sendTyping("stop")}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -403,4 +490,26 @@ function groupByDay(msgs: Message[]): [string, Message[]][] {
     map.get(key)!.push(m);
   }
   return Array.from(map.entries());
+}
+
+function TypingIndicator({ users }: { users: string[] }) {
+  if (users.length === 0) {
+    return <div className="h-5" aria-hidden />;
+  }
+  const label =
+    users.length === 1
+      ? `${users[0]} est en train d'écrire`
+      : users.length === 2
+        ? `${users[0]} et ${users[1]} sont en train d'écrire`
+        : `${users[0]} et ${users.length - 1} autres sont en train d'écrire`;
+  return (
+    <div className="mt-2 flex h-5 items-center gap-2 px-1 text-xs text-muted-foreground">
+      <span className="inline-flex items-center gap-1">
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.2s]" />
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.1s]" />
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" />
+      </span>
+      <span>{label}…</span>
+    </div>
+  );
 }
