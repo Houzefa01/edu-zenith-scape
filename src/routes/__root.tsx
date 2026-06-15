@@ -82,9 +82,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "Lumen est l'école en ligne premium pour apprendre le design, le développement, le produit et la data avec des praticiens reconnus." },
       { name: "author", content: "Lumen" },
       { property: "og:title", content: "Lumen — École en ligne premium" },
-      { property: "og:description", content: "Cours, ateliers, examens et classes en direct, dans une expérience d'apprentissage moderne." },
+      { property: "og:description", content: "Lumen est l'école en ligne premium pour apprendre le design, le développement, le produit et la data avec des praticiens reconnus." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Lumen — École en ligne premium" },
+      { name: "twitter:description", content: "Lumen est l'école en ligne premium pour apprendre le design, le développement, le produit et la data avec des praticiens reconnus." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/6d288f27-e7e7-4772-9566-69fbecbc8728" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/6d288f27-e7e7-4772-9566-69fbecbc8728" },
     ],
     links: [
       {
